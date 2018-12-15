@@ -142,7 +142,22 @@ class DNSquery:
         self.additional += self.tsig_rr
 
     def __repr__(self):
-        return "<DNSquery: {},{},{}>".format(self.qname, self.qtype, self.qclass)
+        qname = None
+        qtype = None
+        qclass = None
+        try:
+            qname = self.qname
+        except Exception as e:
+            pass
+        try:
+            qtype = self.qtype
+        except Exception as e:
+            pass
+        try:
+            qclass = self.qclass
+        except:
+            pass
+        return "<DNSquery: {},{},{}>".format(qname, qtype, qclass)
 
 
 class DNSresponse:
@@ -219,6 +234,30 @@ class DNSresponse:
               (self.qdcount, self.ancount, self.nscount, self.arcount))
         self.print_ampratio()
 
+
+    def to_dict(self):
+        is_axfr=False # Removed this parameter from function header
+        offset = 12                     # skip over DNS header
+        answer_qname = None
+        response_list = []
+        for (secname, rrcount) in zip(self.sections, 
+                     [self.qdcount, self.ancount, self.nscount, self.arcount]):
+            if rrcount and (not is_axfr):
+                pass
+                # print("\n;; %s SECTION:" % secname)
+            if secname != "QUESTION":
+                for i in range(rrcount):
+                    rrname, rrtype, rrclass, ttl, rdata, offset = \
+                            decode_rr(self.message, offset, options["hexrdata"])
+                    #if (is_axfr and (secname != "ANSWER")):
+                    #     continue
+                    if rrtype == 41:
+                        pass
+                        # print_optrr(self.rcode, rrclass, ttl, rdata)
+                    else:
+                        response_list.append({'rrname' : rrname.text(), 'ttl' : ttl, 'type' : rrtype, 'rdata' : rdata})
+        return response_list
+
     def print_rr(self, rrname, ttl, rrtype, rrclass, rdata):
         print("%s\t%d\t%s\t%s\t%s" %
               (rrname.text(), ttl,
@@ -288,13 +327,25 @@ class DNSresponse:
                         print_optrr(self.rcode, rrclass, ttl, rdata)
                     else:
                         self.print_rr(rrname, ttl, rrtype, rrclass, rdata)
-
+    
     def print_all(self):
         """Print all info about the DNS response message"""
         self.print_preamble()
         self.decode_sections()
 
     def __repr__(self):
+        qname = None
+        qtype = None
+        qclass = None
+        try:
+            qname = self.qname
+        except:  pass
+        try:
+            qtype = self.qtype
+        except: pass
+        try:
+            qclass = self.qclass
+        except: pass
         return "<DNSresponse: {},{},{}>".format(
-            self.qname, self.qtype, self.qclass)
+            qname, qtype, qclass)
 
